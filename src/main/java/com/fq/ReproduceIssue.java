@@ -21,6 +21,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -86,6 +87,11 @@ public class ReproduceIssue {
             // Able to successfully send a JSON object that has all the fields defined in TABLE_SCHEMA
             streamWriter.append(new JSONArray().put(
                     new JSONObject().put(STRING_FIELD_NAME, "foo").put(STRING_WITH_DEFAULT_VALUE_FIELD_NAME, "bar"))).get();
+
+            // Done this as well even though it should not be necessary since I've already configured the default behaviour on line 83
+            streamWriter.setMissingValueInterpretationMap(Collections.singletonMap(
+                    STRING_WITH_DEFAULT_VALUE_FIELD_NAME,
+                    AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE));
 
             // Throws an error if I try to send a JSON object that is missing a field even though it has a DefaultValueExpression defined
             // I don't understand why this doesn't work. 
