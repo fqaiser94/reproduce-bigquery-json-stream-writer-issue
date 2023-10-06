@@ -79,24 +79,29 @@ public class ReproduceIssue {
             JsonStreamWriter streamWriter =
                     JsonStreamWriter.newBuilder(
                                     WriteStreamName.of(PROJECT_ID, DATASET_ID, TABLE_ID, "_default").toString(),
+                                    // explicitly specify schema specifically excluding STRING_WITH_DEFAULT_VALUE_FIELD_NAME
+                                    com.google.cloud.bigquery.storage.v1.TableSchema.newBuilder()
+                                            .addFields(com.google.cloud.bigquery.storage.v1.TableFieldSchema.newBuilder()
+                                                    .setName(STRING_FIELD_NAME).setType(com.google.cloud.bigquery.storage.v1.TableFieldSchema.Type.STRING)
+                                                    .setMode(com.google.cloud.bigquery.storage.v1.TableFieldSchema.Mode.REQUIRED)
+                                                    .build())
+                                            // .addFields(com.google.cloud.bigquery.storage.v1.TableFieldSchema.newBuilder()
+                                            //         .setName(STRING_WITH_DEFAULT_VALUE_FIELD_NAME).setType(com.google.cloud.bigquery.storage.v1.TableFieldSchema.Type.STRING)
+                                            //         .setMode(com.google.cloud.bigquery.storage.v1.TableFieldSchema.Mode.REQUIRED)
+                                            //         .build())
+                                            .build(),
                                     bigQueryWriteClient)
-                            // I've made sure to setDefaultMissingValueInterpretation correctly AFAICT
-                            .setDefaultMissingValueInterpretation(AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE)
+                            // I don't even need this anymore
+                            // .setDefaultMissingValueInterpretation(AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE)
                             .build();
 
-            // Able to successfully send a JSON object that has all the fields defined in TABLE_SCHEMA
-            streamWriter.append(new JSONArray().put(
-                    new JSONObject().put(STRING_FIELD_NAME, "foo").put(STRING_WITH_DEFAULT_VALUE_FIELD_NAME, "bar"))).get();
-
-            // Done this as well even though it should not be necessary since I've already configured the default behaviour on line 83
-            streamWriter.setMissingValueInterpretationMap(Collections.singletonMap(
-                    STRING_WITH_DEFAULT_VALUE_FIELD_NAME,
-                    AppendRowsRequest.MissingValueInterpretation.DEFAULT_VALUE));
-
-            // Throws an error if I try to send a JSON object that is missing a field even though it has a DefaultValueExpression defined
-            // I don't understand why this doesn't work. 
+            // This does work correctly now!
             streamWriter.append(new JSONArray().put(
                     new JSONObject().put(STRING_FIELD_NAME, "hello"))).get();
+
+            // However, I can no longer send messages which have all the fields present. This throws an error now.
+            streamWriter.append(new JSONArray().put(
+                    new JSONObject().put(STRING_FIELD_NAME, "foo").put(STRING_WITH_DEFAULT_VALUE_FIELD_NAME, "bar"))).get();
 
             streamWriter.close();
             bigQueryWriteClient.close();
